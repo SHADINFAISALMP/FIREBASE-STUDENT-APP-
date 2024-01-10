@@ -1,28 +1,68 @@
 // ignore_for_file: prefer_const_constructors
 
-import 'dart:io';
-
+import 'dart:typed_data';
+import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:sqflite_10/database/db_functions.dart';
-import 'package:sqflite_10/database/db_model.dart';
 
 class AddStudent extends StatefulWidget {
-  const AddStudent({super.key});
+  const AddStudent({Key? key}) : super(key: key);
 
   @override
   State<AddStudent> createState() => _AddStudentState();
 }
 
 class _AddStudentState extends State<AddStudent> {
-  File? image25;
+  Uint8List? imageinbytes;
   String? imagepath;
-  final _formKey = GlobalKey<FormState>(); // Add a form key for the validation
+  String? imageValidationError; // Added declaration
+  final _formKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
   final _classController = TextEditingController();
   final _guardianController = TextEditingController();
   final _mobileController = TextEditingController();
+  final CollectionReference studentlist =
+      FirebaseFirestore.instance.collection('studentlist');
+
+  // ignore: non_constant_identifier_names
+  void addstudentlist(String Url) {
+    final data = {
+      'name': _nameController.text,
+      'class': _classController.text,
+      'age': _guardianController.text,
+      'mobile': _mobileController.text,
+      'image': Url,
+    };
+    studentlist.add(data);
+  }
+
+  selectImage() async {
+    var imagest = await FilePicker.platform.pickFiles();
+    if (imagest != null) {
+      setState(() {
+        imageinbytes = imagest.files.first.bytes;
+        imagepath = imagest.files.first.name;
+        imageValidationError = null; // Reset validation error
+      });
+    }
+  }
+
+  Future<String?> uploadimage(Uint8List imgbyts, String filename) async {
+    try {
+      firebase_storage.Reference ref = firebase_storage.FirebaseStorage.instance
+          .ref('student image')
+          .child(filename);
+      final meta = firebase_storage.SettableMetadata(contentType: "image/jpeg");
+      await ref.putData(imgbyts, meta);
+      String url = await ref.getDownloadURL();
+
+      return url;
+    } catch (e) {
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,12 +71,36 @@ class _AddStudentState extends State<AddStudent> {
         title: const Text('ADD STUDENT'),
         actions: [
           IconButton(
-            onPressed: () {
-              addstudentclicked(context);
-              Navigator.pop(context);
+            onPressed: () async {
+              if (_formKey.currentState!.validate()) {
+                if (imageinbytes != null) {
+                  showloading(context);
+                  // ignore: non_constant_identifier_names
+                  final Url = await uploadimage(imageinbytes!, imagepath!);
+                  addstudentlist(Url!);
+                  // ignore: use_build_context_synchronously
+                  Navigator.pop(context);
+                  // ignore: use_build_context_synchronously
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Successfully added"),
+                      behavior: SnackBarBehavior.floating,
+                      margin: EdgeInsets.all(10),
+                      backgroundColor: Colors.greenAccent,
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                  // ignore: use_build_context_synchronously
+                  Navigator.pop(context);
+                } else {
+                  setState(() {
+                    imageValidationError = 'Please add a photo';
+                  });
+                }
+              }
             },
             icon: const Icon(Icons.save_rounded),
-          )
+          ),
         ],
         centerTitle: true,
       ),
@@ -44,39 +108,64 @@ class _AddStudentState extends State<AddStudent> {
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Form(
-            key: _formKey, // The form key
+            key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Stack(
                   children: [
-                    CircleAvatar(
-                        backgroundColor: Colors.grey,
-                        backgroundImage: image25 != null
-                            ? FileImage(image25!)
-                            : const AssetImage('assets/profile.png')
-                                as ImageProvider,
-                        radius: 99),
-                    Positioned(
-                      bottom: 20,
-                      right: 5,
-                      child: IconButton(
-                        onPressed: () {
-                          addphoto(context);
-                        },
-                        icon: const Icon(Icons.add_a_photo_outlined),
-                        color: Color.fromARGB(255, 255, 255, 255),
-                        iconSize: 40,
+                    GestureDetector(
+                      onTap: () {
+                        selectImage();
+                      },
+                      child: Container(
+                        width: 160,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.cyan,
+                        ),
+                        child: imageinbytes == null
+                            ? Image.network(
+                                'https://st4.depositphotos.com/11574170/25191/v/450/depositphotos_251916955-stock-illustration-user-glyph-color-icon.jpg',
+                                fit: BoxFit.cover,
+                              )
+                            : Image.memory(
+                                imageinbytes!,
+                                fit: BoxFit.cover,
+                              ),
                       ),
+                    ),
+                    const Positioned(
+                      right: 0,
+                      top: 120,
+                      child: CircleAvatar(
+                        radius: 17,
+                        backgroundColor: Color.fromARGB(255, 10, 199, 251),
+                      ),
+                    ),
+                    const Positioned(
+                      right: 5,
+                      top: 127,
+                      child: Icon(Icons.add_a_photo),
                     ),
                   ],
                 ),
-
+                if (imageValidationError != null)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      imageValidationError!,
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 50),
-
-                // Name input field with validation
                 TextFormField(
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   keyboardType: TextInputType.name,
                   controller: _nameController,
                   decoration: InputDecoration(
@@ -94,9 +183,8 @@ class _AddStudentState extends State<AddStudent> {
                   },
                 ),
                 const SizedBox(height: 20),
-
-                // Class input field with validation
                 TextFormField(
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   keyboardType: TextInputType.text,
                   controller: _classController,
                   decoration: InputDecoration(
@@ -114,9 +202,9 @@ class _AddStudentState extends State<AddStudent> {
                   },
                 ),
                 const SizedBox(height: 20),
-
-                // Guardian input field with validation
                 TextFormField(
+                  maxLength: 2,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   keyboardType: TextInputType.name,
                   controller: _guardianController,
                   decoration: InputDecoration(
@@ -134,11 +222,11 @@ class _AddStudentState extends State<AddStudent> {
                   },
                 ),
                 const SizedBox(height: 20),
-
-                // Mobile input field with validation
                 TextFormField(
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   keyboardType: TextInputType.number,
                   controller: _mobileController,
+                  maxLength: 10,
                   decoration: InputDecoration(
                     labelText: "Mobile",
                     border: OutlineInputBorder(
@@ -163,93 +251,14 @@ class _AddStudentState extends State<AddStudent> {
     );
   }
 
-  Future<void> addstudentclicked(mtx) async {
-    if (_formKey.currentState!.validate() && image25 != null) {
-      final name = _nameController.text.toUpperCase();
-      final classA = _classController.text.toString().trim();
-      final father = _guardianController.text;
-      final phonenumber = _mobileController.text.trim();
-
-      final stdData = StudentModel(
-        name: name,
-        classname: classA,
-        father: father,
-        pnumber: phonenumber,
-        imagex: imagepath!,
-      );
-      await addstudent(stdData); // Use the correct function name addStudent.
-
-      ScaffoldMessenger.of(mtx).showSnackBar(
-        const SnackBar(
-          content: Text("Successfully added"),
-          behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.all(10),
-          backgroundColor: Colors.greenAccent,
-          duration: Duration(seconds: 2),
-        ),
-      );
-
-      setState(() {
-        image25 = null;
-        _nameController.clear();
-        _classController.clear();
-        _guardianController.clear();
-        _mobileController.clear();
-      });
-    } else {
-      ScaffoldMessenger.of(mtx).showSnackBar(
-        const SnackBar(
-          content: Text('Add Profile Picture '),
-          duration: Duration(seconds: 2),
-          margin: EdgeInsets.all(10),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-    }
-  }
-
-  Future<void> getimage(ImageSource source) async {
-    final image = await ImagePicker().pickImage(source: source);
-    if (image == null) {
-      return;
-    }
-    setState(() {
-      image25 = File(image.path);
-      imagepath = image.path.toString();
-    });
-  }
-
-  void addphoto(ctxr) {
+  showloading(BuildContext context) {
     showDialog(
-      context: ctxr,
-      builder: (ctxr) {
-        return AlertDialog(
-          content: const Text('Choose Image From.......'),
-          actions: [
-            IconButton(
-              onPressed: () {
-                getimage(ImageSource.camera);
-                Navigator.of(context).pop();
-              },
-              icon: const Icon(
-                Icons.camera_alt_rounded,
-                color: Colors.red,
-              ),
-            ),
-            IconButton(
-              onPressed: () {
-                getimage(ImageSource.gallery);
-                Navigator.of(context).pop();
-              },
-              icon: const Icon(
-                Icons.image,
-                color: Colors.red,
-              ),
-            ),
-          ],
-        );
-      },
-    );
+        barrierDismissible: false,
+        context: context,
+        builder: (ctx) {
+          return Center(
+            child: CircularProgressIndicator(),
+          );
+        });
   }
 }

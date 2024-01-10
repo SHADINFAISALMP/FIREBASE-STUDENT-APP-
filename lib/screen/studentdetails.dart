@@ -1,12 +1,23 @@
 // ignore_for_file: prefer_const_constructors, prefer_typing_uninitialized_variables
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 class StudentDetails extends StatelessWidget {
-  final stdetails;
-  const StudentDetails({super.key, required this.stdetails});
+  final String name;
+  final String sclass;
+  final String age;
+  final String phone;
+  // ignore: non_constant_identifier_names
+  final String Url;
+
+  const StudentDetails(
+      {super.key,
+      required this.name,
+      required this.sclass,
+      required this.age,
+      required this.phone,
+      // ignore: non_constant_identifier_names
+      required this.Url});
 
   @override
   Widget build(BuildContext context) {
@@ -17,50 +28,58 @@ class StudentDetails extends StatelessWidget {
       ),
       body: Center(
         child: SizedBox(
-          height: 400,
+          height: 600,
           width: 400,
           child: SizedBox(
-            // margin: const EdgeInsets.all(20),
-            // shape:
-            // RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-            // elevation: 10,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ClipRRect(
                   borderRadius:
                       BorderRadius.circular(8), // Adjust the radius as needed
-                  child: Image.file(
-                    File(stdetails.imagex),
-                    width: 160,
-                    height: 160,
+                  child: Image.network(
+                    Url,
+                    width: 180,
+                    height: 180,
                     fit: BoxFit.cover,
                   ),
                 ),
-                const SizedBox(
-                  height: 20,
+                SizedBox(
+                  height: 30,
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Name :  ${stdetails.name}',
-                        style: TextStyle(fontSize: 23, color: Colors.black45)),
-                    const SizedBox(
-                      height: 20,
+                Card(
+                  elevation: 5,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Name:  $name',
+                            style:
+                                TextStyle(fontSize: 20, color: Colors.black)),
+                        Divider(),
+                        SizedBox(height: 15),
+                        Text('Class:  $sclass',
+                            style:
+                                TextStyle(fontSize: 20, color: Colors.black)),
+                        Divider(),
+                        SizedBox(height: 15),
+                        Text('Age:  $age',
+                            style:
+                                TextStyle(fontSize: 20, color: Colors.black)),
+                        Divider(),
+                        SizedBox(height: 15),
+                        Text('Mobile:  $phone',
+                            style:
+                                TextStyle(fontSize: 20, color: Colors.black)),
+                        Divider(),
+                        SizedBox(height: 15),
+                      ],
                     ),
-                    Text('Class :  ${stdetails.classname}',
-                        style: TextStyle(fontSize: 23, color: Colors.black45)),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                    Text('Age :  ${stdetails.father}',
-                        style: TextStyle(fontSize: 23, color: Colors.black45)),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                    Text('Mobile :  ${stdetails.pnumber}',
-                        style: TextStyle(fontSize: 23, color: Colors.black45)),
-                  ],
+                  ),
                 )
               ],
             ),

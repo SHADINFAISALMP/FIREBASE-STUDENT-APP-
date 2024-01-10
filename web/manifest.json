@@ -1,11 +1,11 @@
 {
-    "name": "sqflite_10",
-    "short_name": "sqflite_10",
+    "name": "Student List",
+    "short_name": "Student List",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "This is my website for student list record.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
